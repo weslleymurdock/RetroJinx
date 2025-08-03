@@ -1,0 +1,6 @@
+[submodule "submodules/RetroPie-Setup"]
+	path = submodules/RetroPie-Setup
+	url = https://github.com/RetroPie/RetroPie-Setup.git
+[submodule "submodules/ryujinx"]
+	path = submodules/ryujinx
+	url = https://git.ryujinx.app/ryubing/ryujinx.git
