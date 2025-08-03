@@ -27,8 +27,13 @@ EOF
 #####################
 #### Functions ###### 
 #####################
-
-function build($ryujinx = true, $retropie = true) {
+# 
+#  Build RetroPie and Ryujinx
+#  @param bool $ryujinx - Whether to build Ryujinx
+#  @param bool $retropie - Whether to build RetroPie
+#
+function build($ryujinx = true, $retropie = true) 
+{
   if [ "$retropie" = true ]; then
     echo "Building RetroPie..."
     cd "$RETROPIE_PATH"
@@ -41,12 +46,16 @@ function build($ryujinx = true, $retropie = true) {
   if [ "$ryujinx" = true ]; then
     echo "Building Ryujinx..."
     cd "$RYUJINX_PATH"
-    dotnet publish "$RYUJINX_CSPROJ" -c Release --no-build -o $RYUJINX_OUTPUT_PATH
+    dotnet publish "$RYUJINX_CSPROJ" -c Release --build -o $RYUJINX_OUTPUT_PATH
     chmod +x /opt/retropie/emulators/ryujinx/Ryujinx.sh
   fi
 }   
 
-function install() {
+# 
+# Install Ryujinx and configure EmulationStation
+#
+function install() 
+{
   echo "Installing Ryujinx..."
   mkdir -p /opt/retropie/emulators/ryujinx/
   chmod +x /opt/retropie/emulators/ryujinx/Ryujinx.sh
@@ -69,13 +78,15 @@ function install() {
       echo "The Switch System is already present on the es_systems.cfg file."
     fi
   fi
+  echo "Ryujinx installed successfully."
+  echo "You can now run Ryujinx from EmulationStation or directly using the command: /opt/retropie/emulators/ryujinx/Ryujinx.sh"
 }
 
-function setup() {
-
-}
-
-function uninstall() {
+# 
+# Uninstall Ryujinx and remove it from EmulationStation configuration
+#
+function uninstall() 
+{
   echo "Uninstalling Ryujinx..."
   rm -rf /opt/retropie/emulators/ryujinx/
   echo "Finished uninstalling Ryujinx."
@@ -92,12 +103,18 @@ function uninstall() {
   fi
 }
 
-function update() {
+#
+# Update Ryujinx to the latest version
+#
+function update() 
+{
   echo "Updating Ryujinx..."
   git -C "$RYUJINX_PATH" pull origin main
   git -C "$RYUJINX_PATH" checkout $(git -C "$RYUJINX_PATH" describe --tags `git -C "$RYUJINX_PATH" rev-list --tags --max-count=1`)
   git -C "$RYUJINX_PATH" submodule update --init --recursive
+  echo "Ryujinx updated successfully."
 }
+
 ###################
 #### Root check ###
 ###################
@@ -110,78 +127,30 @@ fi
 ## Argument parser ##
 #####################
 for arg in "$@"; do
-  case "$arg" in
-    --no-build) BUILD=false ;;
-    --no-install) INSTALL=false ;;
-    --no-setup) SETUP=false ;;
-    --no-update) UPDATE=false ;;
-    --uninstall) UNINSTALL=true ;;
-    *)
-      echo "Opção desconhecida: $arg"
-      echo "Uso: $0 [--no-build] [--no-install] [--no-setup] [--no-update] [--uninstall]"
-      exit 1
-      ;;
-  esac
+	case "$arg" in
+		--build) 
+      		update
+      		build true true
+		;;
+    	--retropie-only)
+			update
+			build false true
+		;;
+		--ryujinx-only)
+			update
+			build true false
+			install
+		;;
+		--uninstall) 
+			uninstall
+		;;
+		*)
+			echo "Performing update, build and install of Ryujinx and RetroPie."
+			update
+			build true true
+			install
+		;;
+	esac
 done
-
-####################
-## Uninstall mode ##
-####################
-if [ "$UNINSTALL" = true ]; then
-  echo "Uninstalling Ryujinx"
-  rm -rf /opt/retropie/emulators/ryujinx/
-  echo "Finished uninstalling Ryujinx."
-  echo "Removing Ryujinx from EmulationStation configuration..."
-  if [ -f "$ES_CFG" ]; then
-    if xmlstarlet sel -t -m "/systemList/system/name" -v . -n "$ES_CFG" | grep -q "^switch$"; then
-      xmlstarlet ed --inplace -d "/systemList/system[name='switch']" "$ES_CFG"
-      echo "Ryujinx removed from EmulationStation configuration."
-    else
-      echo "Ryujinx was not found in EmulationStation configuration."
-    fi
-  else
-    echo "EmulationStation configuration file not found."
-  fi
-  exit 0
-fi
-
-####################
-###### Update ######
-####################
-if [ "$UPDATE" = true ]; then
-  echo "Updating main repository..."
-  git pull origin main
-  git checkout $(git describe --tags `git rev-list --tags --max-count=1`)
-  echo "Updating submódules..."
-  git submodule update --init --recursive
-
-  BASHRC="$HOME/.bashrc"
-  UPDATE_CMD="$BASE_PATH/update.sh"
-  if ! grep -Fxq "$UPDATE_CMD" "$BASHRC"; then
-    echo "$UPDATE_CMD" >> "$BASHRC"
-    echo "update.sh added to .bashrc to auto update."
-  fi
-fi
-
-####################
-###### Setup #######
-####################
-if [ "$SETUP" = true ]; then
-
-fi
-
-####################
-###### Build #######
-####################
-if [ "$BUILD" = true ]; then
  
-fi
-
-####################
-##### Install ######
-####################
-if [ "$INSTALL" = true ]; then
-  install()
-fi
-
 echo "Installation finished succesfully. Run 'emulationstation' to start."
